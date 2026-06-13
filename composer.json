@@ -1,7 +1,7 @@
 {
     "name": "estin92/laravel-dvla-ves",
-    "description": "DVLA Vehicle Enquiry Service (VES) API connector for Laravel. Returns typed vehicle data straight from the DVLA VES endpoint.",
-    "keywords": ["laravel", "dvla", "ves", "vehicle-enquiry", "vehicle", "dvsa", "uk"],
+    "description": "Look up UK vehicle tax, MOT, fuel type and emissions by registration number in Laravel via the official DVLA Vehicle Enquiry Service (VES) API. Returns a typed, immutable VehicleData object.",
+    "keywords": ["laravel", "php", "dvla", "ves", "vehicle-enquiry", "vehicle", "registration", "mot", "vehicle-tax", "uk", "dvla-api"],
     "license": "MIT",
     "authors": [
         {
