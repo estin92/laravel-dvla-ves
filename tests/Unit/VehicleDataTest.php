@@ -191,16 +191,27 @@ class VehicleDataTest extends TestCase
         ]);
         $empty = VehicleData::fromApiResponse(['registrationNumber' => 'AB12CDE']);
 
+        $hybrid = VehicleData::fromApiResponse([
+            'registrationNumber' => 'AB12CDE',
+            'fuelType' => 'HYBRID ELECTRIC',
+        ]);
+
         $this->assertTrue($full->isElectric());
         $this->assertFalse($full->isPetrol());
+        $this->assertFalse($full->isDiesel());
+        $this->assertFalse($full->isHybrid());
         $this->assertTrue($full->isSorn());
         $this->assertFalse($full->isTaxed());
         $this->assertFalse($full->isTaxDue()); // SORN is not "tax due"
         $this->assertTrue($full->hasValidMot());
         $this->assertTrue($full->isMarkedForExport());
 
+        $this->assertTrue($hybrid->isHybrid());
+
         $this->assertFalse($empty->isElectric());
         $this->assertFalse($empty->isPetrol());
+        $this->assertFalse($empty->isDiesel());
+        $this->assertFalse($empty->isHybrid());
         $this->assertFalse($empty->isSorn());
         $this->assertFalse($empty->isTaxed());
         $this->assertFalse($empty->hasValidMot());

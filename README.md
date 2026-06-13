@@ -1,5 +1,12 @@
 # Laravel DVLA VES
 
+[![Tests](https://github.com/estin92/laravel-dvla-ves/actions/workflows/tests.yml/badge.svg)](https://github.com/estin92/laravel-dvla-ves/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/estin92/laravel-dvla-ves/graph/badge.svg)](https://codecov.io/gh/estin92/laravel-dvla-ves)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/estin92/laravel-dvla-ves.svg)](https://packagist.org/packages/estin92/laravel-dvla-ves)
+[![Total Downloads](https://img.shields.io/packagist/dt/estin92/laravel-dvla-ves.svg)](https://packagist.org/packages/estin92/laravel-dvla-ves)
+[![PHP Version](https://img.shields.io/packagist/php-v/estin92/laravel-dvla-ves.svg)](https://packagist.org/packages/estin92/laravel-dvla-ves)
+[![License](https://img.shields.io/packagist/l/estin92/laravel-dvla-ves.svg)](LICENSE)
+
 **Laravel DVLA VES** is a PHP package that looks up UK vehicle details by registration number through the official DVLA Vehicle Enquiry Service (VES) API. 
 
 Pass a number plate and it returns a typed, immutable `VehicleData` object exposing tax status, MOT status and expiry, fuel type, CO2 emissions, make, colour, year of manufacture and more. 

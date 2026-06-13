@@ -22,6 +22,20 @@ class FakeVehicleEnquiryServiceTest extends TestCase
         $this->assertTrue($result->isElectric());
     }
 
+    public function test_fake_returns_a_prebuilt_vehicle_data_instance_verbatim(): void
+    {
+        $vehicle = VehicleData::fromApiResponse([
+            'registrationNumber' => 'AB12CDE',
+            'make' => 'TESLA',
+        ]);
+
+        DvlaVes::fake([
+            'AB12CDE' => $vehicle,
+        ]);
+
+        $this->assertSame($vehicle, DvlaVes::lookup('AB12CDE'));
+    }
+
     public function test_fake_normalises_registration_for_matching(): void
     {
         DvlaVes::fake([

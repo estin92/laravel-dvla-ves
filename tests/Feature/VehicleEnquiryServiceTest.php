@@ -343,6 +343,53 @@ class VehicleEnquiryServiceTest extends TestCase
         Storage::disk('local')->assertDirectoryEmpty('dvla-ves-debug');
     }
 
+    public function test_debug_write_skips_when_enabled_but_body_is_empty(): void
+    {
+        Storage::fake('local');
+
+        config([
+            'dvla-ves.debug.log_responses' => true,
+            'dvla-ves.debug.disk' => 'local',
+            'dvla-ves.debug.path' => 'dvla-ves-debug',
+        ]);
+
+        // A 200 with an empty body: the debug dump has nothing to write and must
+        // not create a file. (The lookup itself still raises a domain exception.)
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response('', 200),
+        ]);
+
+        try {
+            DvlaVes::lookup('AA19AAA');
+        } catch (DvlaVesException) {
+            // expected: empty body is not a valid vehicle payload
+        }
+
+        Storage::disk('local')->assertDirectoryEmpty('dvla-ves-debug');
+    }
+
+    public function test_debug_write_skips_when_registration_sanitises_to_empty(): void
+    {
+        Storage::fake('local');
+
+        config([
+            'dvla-ves.debug.log_responses' => true,
+            'dvla-ves.debug.disk' => 'local',
+            'dvla-ves.debug.path' => 'dvla-ves-debug',
+        ]);
+
+        // A registration of only non-alphanumeric characters sanitises to an
+        // empty filename; the dump must be skipped rather than write a file
+        // named for an empty string (also guards against path-traversal input).
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($this->getSampleApiResponse(), 200),
+        ]);
+
+        DvlaVes::lookup('/././');
+
+        Storage::disk('local')->assertDirectoryEmpty('dvla-ves-debug');
+    }
+
     public function test_it_sends_correct_headers(): void
     {
         Http::fake([

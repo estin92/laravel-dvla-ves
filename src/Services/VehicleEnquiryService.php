@@ -113,7 +113,8 @@ class VehicleEnquiryService implements VehicleEnquiry
             return in_array($exception->response?->status(), [500, 502, 503, 504], true);
         }
 
-        return false;
+        // retry() only passes connection/request exceptions; this is unreachable.
+        return false; // @codeCoverageIgnore
     }
 
     /**
