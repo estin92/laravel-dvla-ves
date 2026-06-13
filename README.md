@@ -4,7 +4,7 @@
 
 Pass a number plate and it returns a typed, immutable `VehicleData` object exposing tax status, MOT status and expiry, fuel type, CO2 emissions, make, colour, year of manufacture and more. 
 
-It is built for Laravel 11, 12 and 13 on PHP 8.2+, with first-class enums, response caching, a fake driver for testing and an Artisan lookup command. This package is an independent open-source connector and is not affiliated with or endorsed by the DVLA.
+It is built for Laravel 12 and 13 on PHP 8.2+, with first-class enums, response caching, a fake driver for testing and an Artisan lookup command. This package is an independent open-source connector and is not affiliated with or endorsed by the DVLA.
 
 ## Install
 
