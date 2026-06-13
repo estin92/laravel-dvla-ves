@@ -1,0 +1,74 @@
+{
+    "info": {
+        "_postman_id": "24a2fdfb-19a1-436c-9cff-93030eed6d84",
+        "name": "VES API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get Vehicle Details (Production Env)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "x-api-key",
+                        "type": "text",
+                        "value": "REPLACE WITH YOUR API KEY"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n\t\"registrationNumber\": \"AA19AAA\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles",
+                    "protocol": "https",
+                    "host": ["driver-vehicle-licensing", "api", "gov", "uk"],
+                    "path": ["vehicle-enquiry", "v1", "vehicles"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get Vehicle Details (Test Env)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "x-api-key",
+                        "type": "text",
+                        "value": "REPLACE WITH YOUR API KEY"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n\t\"registrationNumber\": \"AA19AAA\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "https://uat.driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles",
+                    "protocol": "https",
+                    "host": [
+                        "uat",
+                        "driver-vehicle-licensing",
+                        "api",
+                        "gov",
+                        "uk"
+                    ],
+                    "path": ["vehicle-enquiry", "v1", "vehicles"]
+                }
+            },
+            "response": []
+        }
+    ],
+    "protocolProfileBehavior": {}
+}
