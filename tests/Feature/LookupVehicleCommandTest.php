@@ -2,6 +2,7 @@
 
 namespace Estin92\DvlaVes\Tests\Feature;
 
+use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Facades\DvlaVes;
 use Estin92\DvlaVes\Tests\TestCase;
 
@@ -74,7 +75,7 @@ class LookupVehicleCommandTest extends TestCase
     public function test_command_reports_unconfigured(): void
     {
         config(['dvla-ves.api_key' => null]);
-        $this->app->forgetInstance(\Estin92\DvlaVes\Contracts\VehicleEnquiry::class);
+        $this->app->forgetInstance(VehicleEnquiry::class);
         $this->app->forgetInstance('dvla-ves');
 
         $this->artisan('dvla-ves:lookup', ['registration' => 'AB12CDE'])

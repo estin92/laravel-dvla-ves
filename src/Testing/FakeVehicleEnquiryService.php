@@ -14,7 +14,7 @@ class FakeVehicleEnquiryService implements VehicleEnquiry
     private array $responses = [];
 
     /**
-     * @param array<string, array<string, mixed>|VehicleData|Throwable> $responses
+     * @param  array<string, array<string, mixed>|VehicleData|Throwable>  $responses
      */
     public function __construct(array $responses = [])
     {

@@ -9,6 +9,7 @@ use Estin92\DvlaVes\Enums\MotStatus;
 use Estin92\DvlaVes\Enums\TaxStatus;
 use Estin92\DvlaVes\Exceptions\DvlaVesException;
 use Estin92\DvlaVes\Tests\TestCase;
+use Illuminate\Support\Facades\Log;
 
 class VehicleDataTest extends TestCase
 {
@@ -281,7 +282,7 @@ class VehicleDataTest extends TestCase
 
     public function test_unparseable_month_through_accessor_is_logged(): void
     {
-        \Illuminate\Support\Facades\Log::spy();
+        Log::spy();
 
         $data = VehicleData::fromApiResponse([
             'registrationNumber' => 'AB12CDE',
@@ -290,7 +291,7 @@ class VehicleDataTest extends TestCase
 
         $this->assertNull($data->getFirstRegistrationDate());
 
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('debug')
+        Log::shouldHaveReceived('debug')
             ->withArgs(fn (string $message) => str_contains($message, 'unparseable monthOfFirstRegistration'))
             ->once();
     }
@@ -338,7 +339,7 @@ class VehicleDataTest extends TestCase
     {
         config(['dvla-ves.cast_year_month_only_fields_to_carbon' => true]);
 
-        \Illuminate\Support\Facades\Log::spy();
+        Log::spy();
 
         $data = VehicleData::fromApiResponse([
             'registrationNumber' => 'AB12CDE',
@@ -347,14 +348,14 @@ class VehicleDataTest extends TestCase
 
         $this->assertSame('garbage', $data->monthOfFirstRegistration);
 
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('debug')
+        Log::shouldHaveReceived('debug')
             ->withArgs(fn (string $message) => str_contains($message, 'unparseable month field'))
             ->atLeast()->once();
     }
 
     public function test_unrecognised_tax_status_coerces_to_null_and_logs(): void
     {
-        \Illuminate\Support\Facades\Log::spy();
+        Log::spy();
 
         $data = VehicleData::fromApiResponse([
             'registrationNumber' => 'AB12CDE',
@@ -364,14 +365,14 @@ class VehicleDataTest extends TestCase
         $this->assertNull($data->taxStatus);
         $this->assertFalse($data->isTaxed());
 
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')
+        Log::shouldHaveReceived('warning')
             ->withArgs(fn (string $message) => str_contains($message, 'unrecognised taxStatus'))
             ->once();
     }
 
     public function test_unrecognised_mot_status_coerces_to_null_and_logs(): void
     {
-        \Illuminate\Support\Facades\Log::spy();
+        Log::spy();
 
         $data = VehicleData::fromApiResponse([
             'registrationNumber' => 'AB12CDE',
@@ -381,7 +382,7 @@ class VehicleDataTest extends TestCase
         $this->assertNull($data->motStatus);
         $this->assertFalse($data->hasValidMot());
 
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')
+        Log::shouldHaveReceived('warning')
             ->withArgs(fn (string $message) => str_contains($message, 'unrecognised motStatus'))
             ->once();
     }

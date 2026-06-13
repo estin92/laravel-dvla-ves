@@ -18,7 +18,7 @@ class DvlaVes extends Facade
     /**
      * Swap the container binding for a fake, for testing.
      *
-     * @param array<string, array<string, mixed>|VehicleData|\Throwable> $responses
+     * @param  array<string, array<string, mixed>|VehicleData|\Throwable>  $responses
      */
     public static function fake(array $responses = []): FakeVehicleEnquiryService
     {

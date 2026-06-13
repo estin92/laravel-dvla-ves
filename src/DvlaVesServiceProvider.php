@@ -2,6 +2,7 @@
 
 namespace Estin92\DvlaVes;
 
+use Estin92\DvlaVes\Console\LookupVehicleCommand;
 use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Services\CachingVehicleEnquiryService;
 use Estin92\DvlaVes\Services\VehicleEnquiryService;
@@ -52,7 +53,7 @@ class DvlaVesServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \Estin92\DvlaVes\Console\LookupVehicleCommand::class,
+                LookupVehicleCommand::class,
             ]);
 
             $this->publishes([

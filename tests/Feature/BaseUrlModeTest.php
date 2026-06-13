@@ -2,6 +2,7 @@
 
 namespace Estin92\DvlaVes\Tests\Feature;
 
+use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Services\VehicleEnquiryService;
 use Estin92\DvlaVes\Tests\TestCase;
 use Illuminate\Support\Facades\Http;
@@ -11,7 +12,7 @@ class BaseUrlModeTest extends TestCase
     private function makeService(): VehicleEnquiryService
     {
         $this->app->forgetInstance(VehicleEnquiryService::class);
-        $this->app->forgetInstance(\Estin92\DvlaVes\Contracts\VehicleEnquiry::class);
+        $this->app->forgetInstance(VehicleEnquiry::class);
         $this->app->forgetInstance('dvla-ves');
 
         return $this->app->make(VehicleEnquiryService::class);

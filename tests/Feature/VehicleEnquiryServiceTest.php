@@ -2,6 +2,7 @@
 
 namespace Estin92\DvlaVes\Tests\Feature;
 
+use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Data\VehicleData;
 use Estin92\DvlaVes\Enums\FuelType;
 use Estin92\DvlaVes\Enums\TaxStatus;
@@ -12,7 +13,10 @@ use Estin92\DvlaVes\Exceptions\ServiceUnavailableException;
 use Estin92\DvlaVes\Exceptions\VehicleNotFoundException;
 use Estin92\DvlaVes\Facades\DvlaVes;
 use Estin92\DvlaVes\Tests\TestCase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class VehicleEnquiryServiceTest extends TestCase
 {
@@ -51,7 +55,7 @@ class VehicleEnquiryServiceTest extends TestCase
      * Covers every value we have evidence DVLA returns plus the future-
      * proofing path where unknown values coerce to Other.
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('dvlaWireFuelTypeProvider')]
+    #[DataProvider('dvlaWireFuelTypeProvider')]
     public function test_it_parses_dvla_fuel_type_wire_values_into_typed_enum(string $wireValue, FuelType $expected): void
     {
         $response = $this->getSampleApiResponse();
@@ -89,7 +93,7 @@ class VehicleEnquiryServiceTest extends TestCase
      * the typed TaxStatus on VehicleData AND is preserved verbatim on
      * rawResponse so the consumer can persist both.
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('dvlaWireTaxStatusProvider')]
+    #[DataProvider('dvlaWireTaxStatusProvider')]
     public function test_it_parses_dvla_tax_status_wire_values_into_typed_enum(string $wireValue, TaxStatus $expected): void
     {
         $response = $this->getSampleApiResponse();
@@ -221,14 +225,14 @@ class VehicleEnquiryServiceTest extends TestCase
         // ConnectionException. It must surface as a domain ServiceUnavailable,
         // not leak the framework exception to the caller.
         Http::fake(function () {
-            throw new \Illuminate\Http\Client\ConnectionException('cURL error 6: Could not resolve host');
+            throw new ConnectionException('cURL error 6: Could not resolve host');
         });
 
         try {
             DvlaVes::lookup('AA19AAA');
             $this->fail('Expected ServiceUnavailableException');
         } catch (ServiceUnavailableException $e) {
-            $this->assertInstanceOf(\Illuminate\Http\Client\ConnectionException::class, $e->getPrevious());
+            $this->assertInstanceOf(ConnectionException::class, $e->getPrevious());
         }
     }
 
@@ -288,7 +292,7 @@ class VehicleEnquiryServiceTest extends TestCase
             'dvla-ves.debug.disk' => 'dvla-debug-broken',
         ]);
 
-        \Illuminate\Support\Facades\Storage::shouldReceive('disk')
+        Storage::shouldReceive('disk')
             ->andThrow(new \RuntimeException('disk is full'));
 
         Http::fake([
@@ -303,7 +307,7 @@ class VehicleEnquiryServiceTest extends TestCase
 
     public function test_debug_write_persists_response_when_enabled(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
 
         config([
             'dvla-ves.debug.log_responses' => true,
@@ -317,12 +321,12 @@ class VehicleEnquiryServiceTest extends TestCase
 
         DvlaVes::lookup('aa 19 aaa');
 
-        \Illuminate\Support\Facades\Storage::disk('local')->assertExists('dvla-ves-debug/AA19AAA.json');
+        Storage::disk('local')->assertExists('dvla-ves-debug/AA19AAA.json');
     }
 
     public function test_debug_write_does_nothing_when_disabled(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
 
         config([
             'dvla-ves.debug.log_responses' => false,
@@ -336,7 +340,7 @@ class VehicleEnquiryServiceTest extends TestCase
 
         DvlaVes::lookup('AA19AAA');
 
-        \Illuminate\Support\Facades\Storage::disk('local')->assertDirectoryEmpty('dvla-ves-debug');
+        Storage::disk('local')->assertDirectoryEmpty('dvla-ves-debug');
     }
 
     public function test_it_sends_correct_headers(): void
@@ -373,7 +377,7 @@ class VehicleEnquiryServiceTest extends TestCase
             $attempts++;
 
             if ($attempts === 1) {
-                throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: timeout');
+                throw new ConnectionException('cURL error 28: timeout');
             }
 
             return Http::response($this->getSampleApiResponse(), 200);
@@ -417,7 +421,7 @@ class VehicleEnquiryServiceTest extends TestCase
         Http::fake(function () use (&$attempts) {
             $attempts++;
 
-            throw new \Illuminate\Http\Client\ConnectionException('cURL error 6: Could not resolve host');
+            throw new ConnectionException('cURL error 6: Could not resolve host');
         });
 
         $this->expectException(ServiceUnavailableException::class);
@@ -486,7 +490,7 @@ class VehicleEnquiryServiceTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('gatewayErrorStatusProvider')]
+    #[DataProvider('gatewayErrorStatusProvider')]
     public function test_it_throws_service_unavailable_for_gateway_errors(int $status): void
     {
         Http::fake([
@@ -524,7 +528,7 @@ class VehicleEnquiryServiceTest extends TestCase
     public function test_lookup_normalisation_hits_the_same_cache_entry(): void
     {
         config(['dvla-ves.cache.enabled' => true]);
-        $this->app->forgetInstance(\Estin92\DvlaVes\Contracts\VehicleEnquiry::class);
+        $this->app->forgetInstance(VehicleEnquiry::class);
         $this->app->forgetInstance('dvla-ves');
 
         Http::fake([

@@ -6,6 +6,8 @@ use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Data\VehicleData;
 use Estin92\DvlaVes\Services\CachingVehicleEnquiryService;
 use Estin92\DvlaVes\Tests\TestCase;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -122,8 +124,8 @@ class CachingVehicleEnquiryServiceTest extends TestCase
         // store blocks object deserialization. If the decorator cached an
         // object this would return an incomplete class; caching an array
         // keeps the round-trip intact.
-        $store = new \Illuminate\Cache\Repository(
-            new class extends \Illuminate\Cache\ArrayStore
+        $store = new Repository(
+            new class extends ArrayStore
             {
                 public function get($key)
                 {
