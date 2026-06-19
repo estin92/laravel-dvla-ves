@@ -52,4 +52,14 @@ class WheelplanTest extends TestCase
 
         $this->assertCount(count($values), array_unique($values));
     }
+
+    public function test_every_case_has_a_resolved_label(): void
+    {
+        foreach (Wheelplan::cases() as $case) {
+            $label = $case->label();
+
+            $this->assertNotSame('', $label);
+            $this->assertStringNotContainsString('dvla-ves::enums', $label, "Wheelplan::{$case->name} has no translation");
+        }
+    }
 }

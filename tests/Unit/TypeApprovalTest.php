@@ -50,4 +50,14 @@ class TypeApprovalTest extends TestCase
 
         $this->assertCount(count($values), array_unique($values));
     }
+
+    public function test_every_case_has_a_resolved_label(): void
+    {
+        foreach (TypeApproval::cases() as $case) {
+            $label = $case->label();
+
+            $this->assertNotSame('', $label);
+            $this->assertStringNotContainsString('dvla-ves::enums', $label, "TypeApproval::{$case->name} has no translation");
+        }
+    }
 }
