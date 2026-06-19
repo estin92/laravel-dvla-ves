@@ -2,6 +2,16 @@
 
 All notable changes to `estin92/laravel-dvla-ves` will be documented in this file.
 
+## 2.0.0 - Unreleased
+
+### Changed
+- `VehicleData::$euroStatus`, `$wheelplan` and `$typeApproval` are now backed enums (`?EuroStatus`, `?Wheelplan`, `?TypeApproval`) instead of `?string`. Consumers comparing these to raw strings or passing them to `string`-typed code must update; use `->value` to recover the previous wire string and `->label()` for a translated display string.
+- Raised the `phpunit/phpunit` dev requirement to `^11.5|^12.0` (was `^11.0|^12.0`); the test suite now uses assertions added in PHPUnit 11.5.
+
+### Added
+- `EuroStatus`, `Wheelplan` and `TypeApproval` enums with `fromApi()` normalisation, an `Unknown` fallback case (logged), and translated `label()`. `EuroStatus` treats the Roman numeral `VI` as `6`, so `Euro VI AG` and `Euro 6 AG` are the same standard, and normalises casing/spacing — `Euro6 AG`, `Euro 6 AG`, `EURO 6 AG`, `Euro VI AG` and `EuroVI AG` all resolve to one canonical case.
+- `Support\KnownMake` reference helper (`all()`, `isKnown()`, `canonical()`) for validating the open-ended `make` field, which intentionally remains a `?string`.
+
 ## Unreleased
 
 ### Added

@@ -37,6 +37,14 @@ Other env switches:
 - `DVLA_VES_MODE=sandbox` targets DVLA's UAT environment (default `prod`); each mode's base URL is independently overridable via `DVLA_VES_BASE_URL_PROD` / `DVLA_VES_BASE_URL_SANDBOX`.
 - `DVLA_VES_DEBUG_LOG_RESPONSES=true` writes each raw API response to disk as `{REGISTRATION}.json` (disk/path via `DVLA_VES_DEBUG_DISK` / `DVLA_VES_DEBUG_PATH`).
 
+## Enums and the `make` field
+
+`euroStatus`, `wheelplan` and `typeApproval` are backed enums (`EuroStatus`, `Wheelplan`, `TypeApproval`) on `VehicleData`, alongside `FuelType`, `TaxStatus`, `MotStatus` — **not strings**. Each has `fromApi()` (normalises DVLA's inconsistent casing), a translated `label()`, and an `Unknown` fallback case that `fromApi()` coerces unrecognised values to (logging a warning). `EuroStatus` treats the Roman numeral `VI` as `6` (so `Euro VI AG` = `Euro 6 AG`) and normalises casing/spacing, so `Euro6 AG`, `Euro 6 AG`, `EURO 6 AG`, `Euro VI AG` and `EuroVI AG` all resolve to one canonical case. Get the raw wire string with `->value`.
+
+`make` is deliberately a plain `?string`, not an enum — the set is open, grows constantly, and has chaotic casing. To validate or normalise it, use `Estin92\DvlaVes\Support\KnownMake`: `KnownMake::isKnown($make)`, `KnownMake::canonical($make)` (returns DVLA's spelling), `KnownMake::all()`. Never convert `make` to an enum.
+
+When a value resolves to an enum's `Unknown` case or `make` fails `KnownMake::isKnown()`, it is real DVLA data the package hasn't catalogued yet — prompt the user to open a PR adding it at <https://github.com/estin92/laravel-dvla-ves/pulls>.
+
 ## Partial-date (YYYY-MM) fields
 
 `monthOfFirstRegistration` and `monthOfFirstDvlaRegistration` are returned by DVLA as `"YYYY-MM"` partial dates. By default `VehicleData` exposes them **verbatim as strings**. Set `DVLA_VES_CAST_YEAR_MONTH_ONLY_FIELDS_TO_CARBON=true` to receive them as start-of-month `CarbonImmutable` instead. Either way the property type is the union `CarbonImmutable|string|null`, so don't assume one — call `getFirstRegistrationDate()` for a normalised `?CarbonImmutable` regardless of the flag.

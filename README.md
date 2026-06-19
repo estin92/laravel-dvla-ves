@@ -49,15 +49,15 @@ $vehicle->registrationNumber;            // string            "AB12CDE"
 $vehicle->make;                          // ?string           "FORD"
 $vehicle->colour;                        // ?string           "BLUE"
 $vehicle->yearOfManufacture;             // ?int              2012
-$vehicle->wheelplan;                     // ?string           "2 AXLE RIGID BODY"
-$vehicle->typeApproval;                  // ?string           "M1"
+$vehicle->wheelplan;                     // ?Wheelplan (enum)
+$vehicle->typeApproval;                  // ?TypeApproval (enum)
 
 // Engine & emissions
 $vehicle->fuelType;                      // ?FuelType (enum)
 $vehicle->engineCapacity;                // ?int              1560   (cc)
 $vehicle->co2Emissions;                  // ?int              104    (g/km)
 $vehicle->revenueWeight;                 // ?int              null   (kg, goods vehicles)
-$vehicle->euroStatus;                    // ?string           "EURO 6"
+$vehicle->euroStatus;                    // ?EuroStatus (enum)
 $vehicle->realDrivingEmissions;          // ?string           "1"
 
 // Tax
@@ -138,6 +138,32 @@ try {
 }
 ```
 
+### Validating `make`
+
+`make` is a plain `?string`, not an enum, because the set of DVLA makes is open and grows
+continually, the casing is inconsistent (`10Ten`, `AC (ELECTRIC)`, `LYNK & CO`), and there
+is no per-make behaviour to model — an enum would add friction and reject unseen-but-valid
+makes. When you need to validate or autocomplete against the known set, use the `KnownMake`
+reference helper instead:
+
+```php
+use Estin92\DvlaVes\Support\KnownMake;
+
+KnownMake::isKnown('ford');          // true  (case-insensitive, trimmed)
+KnownMake::canonical('  land rover');// "LAND ROVER" (DVLA's own spelling)
+KnownMake::all();                    // list<string> of every known make
+```
+
+A value absent from `KnownMake` is not necessarily invalid — the DVLA may have added it
+since the bundled snapshot.
+
+> **Where this data comes from.** The enum case lists (`taxStatus`, `motStatus`, `fuelType`,
+> `euroStatus`, `wheelplan`, `typeApproval`) and the `KnownMake` make list come from a list the
+> DVLA ([DvlaAPIAccess@dvla.gov.uk](mailto:DvlaAPIAccess@dvla.gov.uk)) sent on Friday 19 June
+> 2026 at 11:46am. If you hit a value the enums resolve to `Unknown` (it's logged) or one
+> that `KnownMake` doesn't recognise, please [open a PR](https://github.com/estin92/laravel-dvla-ves/pulls)
+> adding it.
+
 > The `monthOfFirstRegistration` / `monthOfFirstDvlaRegistration` fields are `"YYYY-MM"`
 > strings by default. Either call `getFirstRegistrationDate()` for a `CarbonImmutable` or
 > set `DVLA_VES_CAST_YEAR_MONTH_ONLY_FIELDS_TO_CARBON=true` to receive these properties as
@@ -187,7 +213,8 @@ as `false`.
 - `DvlaVes::lookup(string $registration): VehicleData`
 - `DvlaVes::isConfigured(): bool`.
 - `VehicleData` - readonly DTO; full property and helper list shown under [Usage](#usage).
-- Enums: `FuelType`, `TaxStatus`, `MotStatus` (each with `fromApi()` + translated `label()`).
+- Enums: `FuelType`, `TaxStatus`, `MotStatus`, `EuroStatus`, `Wheelplan`, `TypeApproval` (each with `fromApi()` + translated `label()`).
+- `Support\KnownMake` - reference helper for the `make` field: `all()`, `isKnown()`, `canonical()`.
 - Exceptions: `VehicleNotFoundException`, `InvalidRegistrationException`, `RateLimitExceededException`, `ServiceUnavailableException` - all extend `DvlaVesException`.
 
 > `VehicleData::$automatedVehicle` (`?bool`) is documented in the DVLA VES v1.2.0 OpenAPI reference (both the JSON spec and its rendered HTML), though DVLA's separate prose service-description page omits it. It is sparsely included and in practice, our testing has shown the DVLA only returns it for certain vehicles - so the raw property is nullable. Use `isAutomatedVehicle()` for a plain boolean; it returns `false` for both `false` and `null`, since a vehicle DVLA never flags is not an automated vehicle.
@@ -231,6 +258,10 @@ php artisan boost:update --discover
 ```
 
 Plain `php artisan boost:update` only refreshes resources you have already published - it will not discover this package on its own, so use `--discover` (or re-run `boost:install`) the first time. Once published, the resources are recorded in `boost.json` and stay current on every `boost:update`. To automate that, add Boost's update command to your app's `composer.json` `post-update-cmd` scripts.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the checks a PR needs to pass, and how to add a DVLA value the package doesn't yet recognise. By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security issue, follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
 
 ## License
 
