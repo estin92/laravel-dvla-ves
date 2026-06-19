@@ -4,9 +4,12 @@ namespace Estin92\DvlaVes\Data;
 
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
+use Estin92\DvlaVes\Enums\EuroStatus;
 use Estin92\DvlaVes\Enums\FuelType;
 use Estin92\DvlaVes\Enums\MotStatus;
 use Estin92\DvlaVes\Enums\TaxStatus;
+use Estin92\DvlaVes\Enums\TypeApproval;
+use Estin92\DvlaVes\Enums\Wheelplan;
 use Estin92\DvlaVes\Exceptions\DvlaVesException;
 use Illuminate\Support\Facades\Log;
 
@@ -31,12 +34,12 @@ class VehicleData
          */
         public readonly CarbonImmutable|string|null $monthOfFirstRegistration,
         public readonly CarbonImmutable|string|null $monthOfFirstDvlaRegistration,
-        public readonly ?string $euroStatus,
+        public readonly ?EuroStatus $euroStatus,
         public readonly ?string $realDrivingEmissions,
-        public readonly ?string $wheelplan,
+        public readonly ?Wheelplan $wheelplan,
         /** Additional Rate of Tax (luxury-car VED supplement) end date. */
         public readonly ?CarbonImmutable $artEndDate,
-        public readonly ?string $typeApproval,
+        public readonly ?TypeApproval $typeApproval,
         public readonly ?bool $markedForExport,
         /**
          * Automated Vehicle (AV) flag, documented in the DVLA VES v1.2.0 OpenAPI
@@ -72,11 +75,11 @@ class VehicleData
             yearOfManufacture: self::intOrNull($response, 'yearOfManufacture'),
             monthOfFirstRegistration: self::monthOrNull($response, 'monthOfFirstRegistration'),
             monthOfFirstDvlaRegistration: self::monthOrNull($response, 'monthOfFirstDvlaRegistration'),
-            euroStatus: $response['euroStatus'] ?? null,
+            euroStatus: EuroStatus::fromApi($response['euroStatus'] ?? null),
             realDrivingEmissions: $response['realDrivingEmissions'] ?? null,
-            wheelplan: $response['wheelplan'] ?? null,
+            wheelplan: Wheelplan::fromApi($response['wheelplan'] ?? null),
             artEndDate: self::dateOrNull($response, 'artEndDate'),
-            typeApproval: $response['typeApproval'] ?? null,
+            typeApproval: TypeApproval::fromApi($response['typeApproval'] ?? null),
             markedForExport: $response['markedForExport'] ?? null,
             automatedVehicle: $response['automatedVehicle'] ?? null,
             dateOfLastV5CIssued: self::dateOrNull($response, 'dateOfLastV5CIssued'),

@@ -4,9 +4,12 @@ namespace Estin92\DvlaVes\Tests\Unit;
 
 use Carbon\CarbonImmutable;
 use Estin92\DvlaVes\Data\VehicleData;
+use Estin92\DvlaVes\Enums\EuroStatus;
 use Estin92\DvlaVes\Enums\FuelType;
 use Estin92\DvlaVes\Enums\MotStatus;
 use Estin92\DvlaVes\Enums\TaxStatus;
+use Estin92\DvlaVes\Enums\TypeApproval;
+use Estin92\DvlaVes\Enums\Wheelplan;
 use Estin92\DvlaVes\Exceptions\DvlaVesException;
 use Estin92\DvlaVes\Tests\TestCase;
 use Illuminate\Support\Facades\Log;
@@ -29,7 +32,9 @@ class VehicleDataTest extends TestCase
         $this->assertSame(MotStatus::Valid, $vehicleData->motStatus);
         $this->assertSame(2019, $vehicleData->yearOfManufacture);
         $this->assertSame('2019-03', $vehicleData->monthOfFirstRegistration);
-        $this->assertSame('Euro 6', $vehicleData->euroStatus);
+        $this->assertSame(EuroStatus::Euro6AG, $vehicleData->euroStatus);
+        $this->assertSame(TypeApproval::M1, $vehicleData->typeApproval);
+        $this->assertSame(Wheelplan::TwoAxleRigidBody, $vehicleData->wheelplan);
         $this->assertFalse($vehicleData->markedForExport);
     }
 
@@ -416,7 +421,7 @@ class VehicleDataTest extends TestCase
             'motExpiryDate' => '2025-03-15',
             'yearOfManufacture' => 2019,
             'monthOfFirstRegistration' => '2019-03',
-            'euroStatus' => 'Euro 6',
+            'euroStatus' => 'Euro 6 AG',
             'markedForExport' => false,
             'typeApproval' => 'M1',
             'wheelplan' => '2 AXLE RIGID BODY',
