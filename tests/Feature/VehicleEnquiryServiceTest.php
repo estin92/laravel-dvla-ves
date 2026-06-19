@@ -606,7 +606,7 @@ class VehicleEnquiryServiceTest extends TestCase
             'motExpiryDate' => '2025-03-15',
             'yearOfManufacture' => 2019,
             'monthOfFirstRegistration' => '2019-03',
-            'euroStatus' => 'Euro 6',
+            'euroStatus' => 'Euro 6 AG',
             'markedForExport' => false,
         ];
     }
