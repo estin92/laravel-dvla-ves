@@ -65,13 +65,18 @@ enum EuroStatus: string
         // VI is the Roman numeral 6: the DVLA uses "Euro VI" and "Euro 6"
         // for the same standard, so both reduce to the same suffix.
         if (str_starts_with($remainder, 'VI')) {
-            $suffix = substr($remainder, strlen('VI'));
-        } elseif (str_starts_with($remainder, '6')) {
-            $suffix = substr($remainder, strlen('6'));
-        } else {
-            return null;
+            return self::twoLetterSuffix(substr($remainder, strlen('VI')));
         }
 
+        if (str_starts_with($remainder, '6')) {
+            return self::twoLetterSuffix(substr($remainder, strlen('6')));
+        }
+
+        return null;
+    }
+
+    private static function twoLetterSuffix(string $suffix): ?string
+    {
         return preg_match('/^[A-Z]{2}$/', $suffix) === 1 ? $suffix : null;
     }
 
