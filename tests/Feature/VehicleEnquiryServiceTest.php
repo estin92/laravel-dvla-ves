@@ -12,9 +12,11 @@ use Estin92\DvlaVes\Exceptions\RateLimitExceededException;
 use Estin92\DvlaVes\Exceptions\ServiceUnavailableException;
 use Estin92\DvlaVes\Exceptions\VehicleNotFoundException;
 use Estin92\DvlaVes\Facades\DvlaVes;
+use Estin92\DvlaVes\Services\VehicleEnquiryService;
 use Estin92\DvlaVes\Tests\TestCase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -404,6 +406,131 @@ class VehicleEnquiryServiceTest extends TestCase
         });
     }
 
+    public function test_it_auto_generates_a_correlation_id_header_when_none_is_supplied(): void
+    {
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($this->getSampleApiResponse(), 200),
+        ]);
+
+        DvlaVes::lookup('AA19AAA');
+
+        Http::assertSent(function ($request) {
+            $sent = $request->header('X-Correlation-Id')[0] ?? null;
+
+            return is_string($sent) && $sent !== '';
+        });
+    }
+
+    public function test_set_correlation_id_sends_the_supplied_value_verbatim(): void
+    {
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($this->getSampleApiResponse(), 200),
+        ]);
+
+        $this->dvlaService()->setCorrelationId('caller-trace-123')->lookup('AA19AAA');
+
+        Http::assertSent(function ($request) {
+            return $request->hasHeader('X-Correlation-Id', 'caller-trace-123');
+        });
+    }
+
+    public function test_a_supplied_correlation_id_is_consumed_once_then_resets_to_auto(): void
+    {
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($this->getSampleApiResponse(), 200),
+        ]);
+
+        $service = $this->dvlaService();
+        $service->setCorrelationId('caller-trace-123')->lookup('AA19AAA');
+        $service->lookup('AA19AAA');
+
+        $sentIds = Http::recorded()
+            ->map(fn ($pair) => $pair[0]->header('X-Correlation-Id')[0] ?? null)
+            ->all();
+
+        $this->assertSame('caller-trace-123', $sentIds[0], 'The first lookup must use the supplied id');
+        $this->assertNotSame('caller-trace-123', $sentIds[1], 'The second lookup must not reuse the consumed id');
+        $this->assertIsString($sentIds[1]);
+        $this->assertNotSame('', $sentIds[1], 'The second lookup must fall back to an auto-generated id');
+    }
+
+    public function test_a_supplied_correlation_id_is_readable_on_a_thrown_exception(): void
+    {
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response([], 503),
+        ]);
+
+        try {
+            $this->dvlaService()->setCorrelationId('caller-trace-123')->lookup('AA19AAA');
+            $this->fail('Expected ServiceUnavailableException');
+        } catch (ServiceUnavailableException $e) {
+            $this->assertSame('caller-trace-123', $e->correlationId);
+        }
+    }
+
+    public function test_an_auto_generated_correlation_id_is_readable_on_a_thrown_exception(): void
+    {
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response([
+                'message' => 'Vehicle not found',
+            ], 404),
+        ]);
+
+        try {
+            DvlaVes::lookup('NOTFOUND');
+            $this->fail('Expected VehicleNotFoundException');
+        } catch (VehicleNotFoundException $e) {
+            $sentId = Http::recorded()->first()[0]->header('X-Correlation-Id')[0] ?? null;
+
+            $this->assertIsString($e->correlationId);
+            $this->assertNotSame('', $e->correlationId);
+            $this->assertSame($sentId, $e->correlationId, 'The exception must carry the id that was actually sent');
+        }
+    }
+
+    public function test_the_correlation_id_is_recorded_in_the_error_log_context(): void
+    {
+        Log::spy();
+
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response([], 503),
+        ]);
+
+        try {
+            $this->dvlaService()->setCorrelationId('caller-trace-123')->lookup('AA19AAA');
+        } catch (ServiceUnavailableException) {
+            // expected; we are asserting on the log context, not the exception here
+        }
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn (string $message, array $context) => ($context['correlationId'] ?? null) === 'caller-trace-123')
+            ->atLeast()->once();
+    }
+
+    public function test_the_debug_dump_remains_the_bare_dvla_response_body(): void
+    {
+        Storage::fake('local');
+
+        config([
+            'dvla-ves.debug.log_responses' => true,
+            'dvla-ves.debug.disk' => 'local',
+            'dvla-ves.debug.path' => 'dvla-ves-debug',
+        ]);
+
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($this->getSampleApiResponse(), 200),
+        ]);
+
+        $this->dvlaService()->setCorrelationId('caller-trace-123')->lookup('AA19AAA');
+
+        $disk = config('dvla-ves.debug.disk');
+        $path = config('dvla-ves.debug.path');
+        $dump = json_decode(Storage::disk($disk)->get("{$path}/AA19AAA.json"), true);
+
+        $this->assertSame($this->getSampleApiResponse(), $dump, 'The dump must remain the verbatim DVLA body with no injected metadata');
+        $this->assertArrayNotHasKey('correlationId', $dump, 'Correlation metadata must not pollute the captured response payload');
+    }
+
     public function test_it_retries_a_503_then_succeeds(): void
     {
         Http::fakeSequence('*/vehicle-enquiry/v1/vehicles')
@@ -586,6 +713,11 @@ class VehicleEnquiryServiceTest extends TestCase
         DvlaVes::lookup('aa 19 aaa'); // normalises to AA19AAA -> cache hit
 
         Http::assertSentCount(1);
+    }
+
+    private function dvlaService(): VehicleEnquiryService
+    {
+        return $this->app->make(VehicleEnquiryService::class);
     }
 
     /**

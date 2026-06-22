@@ -22,6 +22,8 @@ class VehicleEnquiryService implements VehicleEnquiry
 {
     private const ENDPOINT = '/vehicle-enquiry/v1/vehicles';
 
+    private ?string $correlationId = null;
+
     public function __construct(
         private readonly ?string $apiKey,
         private readonly string $baseUrl,
@@ -29,6 +31,17 @@ class VehicleEnquiryService implements VehicleEnquiry
         private readonly int $retryAttempts,
         private readonly int $retryDelayMs,
     ) {}
+
+    /**
+     * Set the X-Correlation-Id for the next lookup only.
+     * The package will otherwise auto-generate a UUID in lookup().
+     */
+    public function setCorrelationId(?string $correlationId): static
+    {
+        $this->correlationId = $correlationId;
+
+        return $this;
+    }
 
     /**
      * Look up vehicle details by registration number.
@@ -45,11 +58,20 @@ class VehicleEnquiryService implements VehicleEnquiry
 
         $this->validateConfiguration();
 
-        Log::debug('DVLA VES API: Looking up vehicle', ['registration' => $normalised]);
+        $correlationId = $this->correlationId ?? (string) Str::uuid();
 
-        $response = $this->makeRequest($normalised);
+        Log::debug('DVLA VES API: Looking up vehicle', [
+            'registration' => $normalised,
+            'correlationId' => $correlationId,
+        ]);
 
-        return $this->handleResponse($response, $normalised);
+        try {
+            $response = $this->makeRequest($normalised, $correlationId);
+
+            return $this->handleResponse($response, $normalised, $correlationId);
+        } finally {
+            $this->correlationId = null;
+        }
     }
 
     /**
@@ -79,7 +101,7 @@ class VehicleEnquiryService implements VehicleEnquiry
     /**
      * @throws ServiceUnavailableException when the API is unreachable after retries
      */
-    private function makeRequest(string $registration): Response
+    private function makeRequest(string $registration, string $correlationId): Response
     {
         $url = rtrim($this->baseUrl, '/').self::ENDPOINT;
 
@@ -87,6 +109,7 @@ class VehicleEnquiryService implements VehicleEnquiry
             return Http::withHeaders([
                 'x-api-key' => $this->apiKey,
                 'Content-Type' => 'application/json',
+                'X-Correlation-Id' => $correlationId,
             ])
                 ->timeout($this->timeout)
                 ->retry(
@@ -99,7 +122,7 @@ class VehicleEnquiryService implements VehicleEnquiry
                     'registrationNumber' => $registration,
                 ]);
         } catch (ConnectionException $e) {
-            throw new ServiceUnavailableException(previous: $e);
+            throw new ServiceUnavailableException(previous: $e, correlationId: $correlationId);
         }
     }
 
@@ -124,7 +147,7 @@ class VehicleEnquiryService implements VehicleEnquiry
      * @throws RateLimitExceededException
      * @throws ServiceUnavailableException
      */
-    private function handleResponse(Response $response, string $registration): VehicleData
+    private function handleResponse(Response $response, string $registration, string $correlationId): VehicleData
     {
         $statusCode = $response->status();
         $body = $response->json();
@@ -132,6 +155,7 @@ class VehicleEnquiryService implements VehicleEnquiry
         Log::debug('DVLA VES API: Response received', [
             'registration' => $registration,
             'status' => $statusCode,
+            'correlationId' => $correlationId,
         ]);
 
         $this->logResponseForDebugging($response, $registration);
@@ -139,14 +163,15 @@ class VehicleEnquiryService implements VehicleEnquiry
         if ($response->successful()) {
             if (! is_array($body)) {
                 throw new DvlaVesException(
-                    "DVLA VES returned a {$statusCode} with an empty or non-JSON body for registration: {$registration}"
+                    "DVLA VES returned a {$statusCode} with an empty or non-JSON body for registration: {$registration}",
+                    correlationId: $correlationId,
                 );
             }
 
             return VehicleData::fromApiResponse($body);
         }
 
-        $this->handleErrorResponse($statusCode, $body, $registration, $response);
+        $this->handleErrorResponse($statusCode, $body, $registration, $response, $correlationId);
     }
 
     private function logResponseForDebugging(Response $response, string $registration): void
@@ -192,20 +217,21 @@ class VehicleEnquiryService implements VehicleEnquiry
      * @throws RateLimitExceededException
      * @throws ServiceUnavailableException
      */
-    private function handleErrorResponse(int $statusCode, ?array $body, string $registration, Response $response): never
+    private function handleErrorResponse(int $statusCode, ?array $body, string $registration, Response $response, string $correlationId): never
     {
         Log::warning('DVLA VES API: Error response', [
             'registration' => $registration,
             'status' => $statusCode,
             'body' => $body,
+            'correlationId' => $correlationId,
         ]);
 
         match ($statusCode) {
-            400 => throw new InvalidRegistrationException($registration, $body['message'] ?? null),
-            404 => throw new VehicleNotFoundException($registration),
-            429 => throw new RateLimitExceededException($response->header('Retry-After')),
-            500, 502, 503, 504 => throw new ServiceUnavailableException($statusCode),
-            default => throw DvlaVesException::fromResponse($statusCode, $body),
+            400 => throw new InvalidRegistrationException($registration, $body['message'] ?? null, $correlationId),
+            404 => throw new VehicleNotFoundException($registration, $correlationId),
+            429 => throw new RateLimitExceededException($response->header('Retry-After'), $correlationId),
+            500, 502, 503, 504 => throw new ServiceUnavailableException($statusCode, correlationId: $correlationId),
+            default => throw DvlaVesException::fromResponse($statusCode, $body, $correlationId),
         };
     }
 }

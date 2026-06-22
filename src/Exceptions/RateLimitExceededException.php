@@ -7,7 +7,7 @@ class RateLimitExceededException extends DvlaVesException
     /** Seconds to wait before retrying, from the Retry-After header (null if absent). */
     public readonly ?int $retryAfter;
 
-    public function __construct(?string $retryAfter = null)
+    public function __construct(?string $retryAfter = null, ?string $correlationId = null)
     {
         $this->retryAfter = is_numeric($retryAfter) ? (int) $retryAfter : null;
 
@@ -21,6 +21,7 @@ class RateLimitExceededException extends DvlaVesException
             message: $message,
             errorCode: 'RATE_LIMIT_EXCEEDED',
             code: 429,
+            correlationId: $correlationId,
         );
     }
 }
