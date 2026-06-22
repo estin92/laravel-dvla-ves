@@ -3,6 +3,7 @@
 namespace Estin92\DvlaVes\Enums;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 enum Wheelplan: string
 {
@@ -57,7 +58,7 @@ enum Wheelplan: string
     {
         $collapsed = preg_replace('/\s+/', ' ', trim($value)) ?? '';
 
-        return strtoupper($collapsed);
+        return Str::upper($collapsed);
     }
 
     public function label(): string

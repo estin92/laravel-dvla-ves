@@ -4,6 +4,8 @@ namespace Estin92\DvlaVes\Services;
 
 use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Data\VehicleData;
+use Estin92\DvlaVes\Data\VesError;
+use Estin92\DvlaVes\Exceptions\DvlaVesAuthorisationException;
 use Estin92\DvlaVes\Exceptions\DvlaVesException;
 use Estin92\DvlaVes\Exceptions\InvalidRegistrationException;
 use Estin92\DvlaVes\Exceptions\RateLimitExceededException;
@@ -24,13 +26,36 @@ class VehicleEnquiryService implements VehicleEnquiry
 
     private ?string $correlationId = null;
 
+    private readonly string $baseUrl;
+
     public function __construct(
         private readonly ?string $apiKey,
-        private readonly string $baseUrl,
+        string $baseUrl,
         private readonly int $timeout,
         private readonly int $retryAttempts,
         private readonly int $retryDelayMs,
-    ) {}
+    ) {
+        $this->baseUrl = $this->forceHttps($baseUrl);
+    }
+
+    /**
+     * The base URL is env-overridable; upgrade a plain http:// override to https
+     * and reject any other scheme, so the API key can never go out over http.
+     */
+    private function forceHttps(string $baseUrl): string
+    {
+        $trimmed = trim($baseUrl);
+
+        if (Str::startsWith($trimmed, 'https://')) {
+            return $trimmed;
+        }
+
+        if (Str::startsWith($trimmed, 'http://')) {
+            return Str::replaceStart('http://', 'https://', $trimmed);
+        }
+
+        throw new DvlaVesException("DVLA VES base URL must use HTTPS, got: {$baseUrl}");
+    }
 
     /**
      * Set the X-Correlation-Id for the next lookup only.
@@ -186,7 +211,7 @@ class VehicleEnquiryService implements VehicleEnquiry
             return;
         }
 
-        $safeName = preg_replace('/[^A-Z0-9]/', '', mb_strtoupper($registration));
+        $safeName = preg_replace('/[^A-Z0-9]/', '', Str::upper($registration));
 
         if ($safeName === '') {
             return;
@@ -226,8 +251,11 @@ class VehicleEnquiryService implements VehicleEnquiry
             'correlationId' => $correlationId,
         ]);
 
+        $error = VesError::fromResponse($statusCode, $body);
+
         match ($statusCode) {
-            400 => throw new InvalidRegistrationException($registration, $body['message'] ?? null, $correlationId),
+            400 => throw InvalidRegistrationException::fromError($registration, $error, $correlationId),
+            403 => throw new DvlaVesAuthorisationException($error, $correlationId),
             404 => throw new VehicleNotFoundException($registration, $correlationId),
             429 => throw new RateLimitExceededException($response->header('Retry-After'), $correlationId),
             500, 502, 503, 504 => throw new ServiceUnavailableException($statusCode, correlationId: $correlationId),

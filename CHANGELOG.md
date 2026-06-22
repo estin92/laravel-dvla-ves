@@ -2,6 +2,15 @@
 
 All notable changes to `estin92/laravel-dvla-ves` will be documented in this file.
 
+## 2.2.0 - 2026-06-23
+
+### Added
+- `DvlaVesAuthorisationException`, thrown on an HTTP 403 (a rejected, missing, or unentitled API key). The message points at `DVLA_VES_API_KEY` as the likely cause, and 403s are no longer retried.
+- The configured base URL is now forced to HTTPS: a plain `http://` override is upgraded to `https://`, and any other scheme is rejected at construction, so the API key can never be sent over http.
+
+### Changed
+- DVLA's real error envelope is now parsed for both the JSON:API `{"errors":[{code,title,detail}]}` shape and the flat `{"message":...}` shape, surfacing DVLA's `code` and `detail` on the thrown exception. As a result, `InvalidRegistrationException::$errorCode` now reflects DVLA's returned code (e.g. `ENQ103`) when present, falling back to `INVALID_REGISTRATION`, and `$errors` carries the full `errors[]` array.
+
 ## 2.1.0 - 2026-06-22
 
 ### Added
