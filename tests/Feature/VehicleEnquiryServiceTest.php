@@ -6,6 +6,7 @@ use Estin92\DvlaVes\Contracts\VehicleEnquiry;
 use Estin92\DvlaVes\Data\VehicleData;
 use Estin92\DvlaVes\Enums\FuelType;
 use Estin92\DvlaVes\Enums\TaxStatus;
+use Estin92\DvlaVes\Exceptions\DvlaVesAuthorisationException;
 use Estin92\DvlaVes\Exceptions\DvlaVesException;
 use Estin92\DvlaVes\Exceptions\InvalidRegistrationException;
 use Estin92\DvlaVes\Exceptions\RateLimitExceededException;
@@ -148,13 +149,57 @@ class VehicleEnquiryServiceTest extends TestCase
     {
         Http::fake([
             '*/vehicle-enquiry/v1/vehicles' => Http::response([
-                'message' => 'Invalid registration number',
+                'errors' => [[
+                    'status' => '400',
+                    'code' => 'ENQ103',
+                    'title' => 'Bad Request',
+                    'detail' => 'Invalid format for field - vehicle registration number',
+                ]],
             ], 400),
         ]);
 
-        $this->expectException(InvalidRegistrationException::class);
+        try {
+            DvlaVes::lookup('INVALID!');
+            $this->fail('Expected InvalidRegistrationException');
+        } catch (InvalidRegistrationException $e) {
+            $this->assertSame(400, $e->getCode());
+            $this->assertSame('ENQ103', $e->errorCode);
+            $this->assertStringContainsString('Invalid format for field', $e->getMessage());
+            $this->assertStringContainsString('INVALID!', $e->getMessage());
+        }
+    }
 
-        DvlaVes::lookup('INVALID!');
+    public function test_it_throws_authorisation_exception_for_403(): void
+    {
+        $body = json_decode(file_get_contents(__DIR__.'/../fixtures/ves-error-403.json'), true);
+
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($body, 403),
+        ]);
+
+        try {
+            DvlaVes::lookup('AA19AAA');
+            $this->fail('Expected DvlaVesAuthorisationException');
+        } catch (DvlaVesAuthorisationException $e) {
+            $this->assertSame(403, $e->getCode());
+            $this->assertStringContainsString('Forbidden', $e->getMessage());
+            $this->assertStringContainsString('DVLA_VES_API_KEY', $e->getMessage());
+        }
+    }
+
+    public function test_it_does_not_retry_a_403(): void
+    {
+        Http::fake([
+            '*/vehicle-enquiry/v1/vehicles' => Http::response(['message' => 'Forbidden'], 403),
+        ]);
+
+        try {
+            DvlaVes::lookup('AA19AAA');
+        } catch (DvlaVesAuthorisationException) {
+            // expected
+        }
+
+        Http::assertSentCount(1);
     }
 
     public function test_it_throws_rate_limit_exception_for_429(): void
@@ -681,19 +726,17 @@ class VehicleEnquiryServiceTest extends TestCase
 
     public function test_unmapped_status_throws_base_dvla_exception_with_error_body(): void
     {
-        // The default match arm: e.g. a 403. Uses the shipped ves-error.json
-        // shape to assert the error body is surfaced on the exception.
         $errorBody = json_decode(file_get_contents(__DIR__.'/../fixtures/ves-error.json'), true);
 
         Http::fake([
-            '*/vehicle-enquiry/v1/vehicles' => Http::response($errorBody, 403),
+            '*/vehicle-enquiry/v1/vehicles' => Http::response($errorBody, 451),
         ]);
 
         try {
             DvlaVes::lookup('AA19AAA');
             $this->fail('Expected DvlaVesException');
         } catch (DvlaVesException $e) {
-            $this->assertSame(403, $e->getCode());
+            $this->assertSame(451, $e->getCode());
             $this->assertSame('400', $e->errorCode);
             $this->assertSame($errorBody['errors'], $e->errors);
         }
