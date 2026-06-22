@@ -211,7 +211,7 @@ class VehicleEnquiryService implements VehicleEnquiry
             return;
         }
 
-        $safeName = preg_replace('/[^A-Z0-9]/', '', mb_strtoupper($registration));
+        $safeName = preg_replace('/[^A-Z0-9]/', '', Str::upper($registration));
 
         if ($safeName === '') {
             return;

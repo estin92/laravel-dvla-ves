@@ -3,6 +3,7 @@
 namespace Estin92\DvlaVes\Enums;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 enum EuroStatus: string
 {
@@ -53,7 +54,7 @@ enum EuroStatus: string
 
     private static function normaliseToSuffix(string $value): ?string
     {
-        $compact = strtoupper(preg_replace('/\s+/', '', trim($value)) ?? '');
+        $compact = Str::upper(preg_replace('/\s+/', '', trim($value)) ?? '');
 
         if (! str_starts_with($compact, 'EURO')) {
             return null;

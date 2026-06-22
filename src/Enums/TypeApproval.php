@@ -3,6 +3,7 @@
 namespace Estin92\DvlaVes\Enums;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 enum TypeApproval: string
 {
@@ -34,7 +35,7 @@ enum TypeApproval: string
             return null;
         }
 
-        $normalised = strtoupper(trim($value));
+        $normalised = Str::upper(trim($value));
 
         if ($normalised === '') {
             return null;

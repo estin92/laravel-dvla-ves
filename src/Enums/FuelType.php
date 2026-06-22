@@ -2,6 +2,8 @@
 
 namespace Estin92\DvlaVes\Enums;
 
+use Illuminate\Support\Str;
+
 /**
  * Cases mirror the DVLA Vehicle Enquiry Service API's `fuelType` response
  * strings, verified against live responses. Any value DVLA returns that
@@ -24,7 +26,7 @@ enum FuelType: string
             return null;
         }
 
-        return self::tryFrom(strtoupper($value)) ?? self::Other;
+        return self::tryFrom(Str::upper($value)) ?? self::Other;
     }
 
     public function is(self $type): bool
