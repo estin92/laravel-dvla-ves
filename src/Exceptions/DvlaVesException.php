@@ -13,17 +13,18 @@ class DvlaVesException extends Exception
         public readonly ?array $errors = null,
         int $code = 0,
         ?Throwable $previous = null,
+        public readonly ?string $correlationId = null,
     ) {
         parent::__construct($message, $code, $previous);
     }
 
-    public static function fromResponse(int $statusCode, ?array $body): self
+    public static function fromResponse(int $statusCode, ?array $body, ?string $correlationId = null): self
     {
         $body ??= [];
         $message = $body['message'] ?? 'An unknown error occurred';
         $errorCode = $body['errors'][0]['code'] ?? null;
         $errors = $body['errors'] ?? null;
 
-        return new self($message, $errorCode, $errors, $statusCode);
+        return new self($message, $errorCode, $errors, $statusCode, correlationId: $correlationId);
     }
 }
