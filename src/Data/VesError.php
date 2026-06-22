@@ -10,7 +10,7 @@ namespace Estin92\DvlaVes\Data;
 class VesError
 {
     /**
-     * @param  array<int, array<string, mixed>>|null  $errors  The verbatim `errors` array, when present.
+     * @param  list<array{status?: string, code?: string, title?: string, detail?: string}>|null  $errors
      */
     public function __construct(
         public readonly int $statusCode,

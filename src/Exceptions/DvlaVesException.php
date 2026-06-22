@@ -8,6 +8,9 @@ use Throwable;
 
 class DvlaVesException extends Exception
 {
+    /**
+     * @param  list<array{status?: string, code?: string, title?: string, detail?: string}>|null  $errors
+     */
     public function __construct(
         string $message,
         public readonly ?string $errorCode = null,
